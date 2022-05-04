@@ -7,12 +7,14 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v4"
 )
 
 type User struct {
-	UserWithoutActivity
-	Active bool
+	Fname   string
+	Lname   string
+	Phone   string
+	Address string
+	Active  bool
 }
 
 type UserWithoutActivity struct {
@@ -22,8 +24,26 @@ type UserWithoutActivity struct {
 	Address string
 }
 
+type Rows interface {
+	Next() bool
+	Scan(dest ...interface{}) error
+}
+
+type dbconn interface {
+	Query(
+		ctx context.Context,
+		sql string,
+		args ...interface{},
+	) (Rows, error)
+	Exec(
+		ctx context.Context,
+		sql string,
+		arguments ...interface{},
+	) (interface{}, error)
+}
+
 func GetUsers(c *gin.Context) {
-	conn := c.MustGet("databaseConn").(*pgx.Conn)
+	conn := c.MustGet("databaseConn").(dbconn)
 
 	rows, err := conn.Query(context.Background(), "select * from kuser")
 	if err != nil {
@@ -84,7 +104,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	conn := c.MustGet("databaseConn").(*pgx.Conn)
+	conn := c.MustGet("databaseConn").(dbconn)
 	insertQuery := `INSERT INTO kuser (FirstName, LastName, Phone, Addr)
 	VALUES ($1, $2, $3, $4)`
 	_, err = conn.Exec(
@@ -107,7 +127,7 @@ func CreateUser(c *gin.Context) {
 
 func DeactivateUser(c *gin.Context) {
 	phone := c.Param("phone")
-	conn := c.MustGet("databaseConn").(*pgx.Conn)
+	conn := c.MustGet("databaseConn").(dbconn)
 	updateQuery := `UPDATE kuser
 	SET Active = False
 	WHERE Phone = $1`
