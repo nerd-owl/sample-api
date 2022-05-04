@@ -47,6 +47,6 @@ func main() {
 
 	router.GET("/users", user.GetUsers)
 	router.POST("/users", user.CreateUser)
-	router.GET("/deactivate/:phone", user.DeactivateUser)
+	router.PUT("/deactivate/:phone", user.DeactivateUser)
 	router.Run(fmt.Sprintf("localhost:%v", os.Getenv("HTTP_PORT")))
 }

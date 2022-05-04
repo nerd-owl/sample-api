@@ -1,7 +1,6 @@
 package user
 
 import (
-	"context"
 	"example/web-service-gin/helper"
 	"log"
 	"net/http"
@@ -24,10 +23,10 @@ type UserWithoutActivity struct {
 
 func GetUsers(c *gin.Context) {
 	conn := c.MustGet("databaseConn").(*pgx.Conn)
-
-	rows, err := conn.Query(context.Background(), "select * from kuser")
+	selectQuery := "select * from kuser"
+	rows, err := conn.Query(c.Request.Context(), selectQuery)
 	if err != nil {
-		log.Println("Query failed", err)
+		log.Println("GetUsers: Query failed for: ", selectQuery, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
@@ -44,7 +43,11 @@ func GetUsers(c *gin.Context) {
 			&user.Active,
 		)
 		if err != nil {
-			log.Println("row.Scan Failed", err)
+			log.Println(
+				"GetUsers: row.Scan Failed for: ",
+				selectQuery,
+				err,
+			)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}
@@ -59,7 +62,7 @@ func CreateUser(c *gin.Context) {
 	var user UserWithoutActivity
 	err := c.BindJSON(&user)
 	if err != nil {
-		log.Println("BindJSON Failed", err)
+		log.Println("CreateUser: BindJSON Failed \n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
@@ -88,7 +91,7 @@ func CreateUser(c *gin.Context) {
 	insertQuery := `INSERT INTO kuser (FirstName, LastName, Phone, Addr)
 	VALUES ($1, $2, $3, $4)`
 	_, err = conn.Exec(
-		context.Background(),
+		c.Request.Context(),
 		insertQuery,
 		user.Fname,
 		user.Lname,
@@ -97,7 +100,7 @@ func CreateUser(c *gin.Context) {
 	)
 
 	if err != nil {
-		log.Println("BindJSON Failed", err)
+		log.Println("CreateUser: ", insertQuery, "failed \n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
@@ -111,10 +114,10 @@ func DeactivateUser(c *gin.Context) {
 	updateQuery := `UPDATE kuser
 	SET Active = False
 	WHERE Phone = $1`
-	_, err := conn.Exec(context.Background(), updateQuery, phone)
+	_, err := conn.Exec(c.Request.Context(), updateQuery, phone)
 
 	if err != nil {
-		log.Println("Update Query Failed", err)
+		log.Println("DeactivateUser: ", updateQuery, "failed. \n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
