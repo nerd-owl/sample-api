@@ -1,12 +1,13 @@
 package user
 
 import (
+	"example/web-service-gin/handler/pgx"
 	"example/web-service-gin/helper"
+
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v4"
 )
 
 type User struct {
@@ -22,11 +23,11 @@ type UserWithoutActivity struct {
 }
 
 func GetUsers(c *gin.Context) {
-	conn := c.MustGet("databaseConn").(*pgx.Conn)
+	conn := c.MustGet("databaseConn").(pgx.DbConn)
 	selectQuery := "select * from kuser"
 	rows, err := conn.Query(c.Request.Context(), selectQuery)
 	if err != nil {
-		log.Println("GetUsers: Query failed for: ", selectQuery, err)
+		log.Println("GetUsers: Query failed for:", selectQuery, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
@@ -44,7 +45,7 @@ func GetUsers(c *gin.Context) {
 		)
 		if err != nil {
 			log.Println(
-				"GetUsers: row.Scan Failed for: ",
+				"GetUsers: row.Scan Failed for:",
 				selectQuery,
 				err,
 			)
@@ -87,7 +88,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	conn := c.MustGet("databaseConn").(*pgx.Conn)
+	conn := c.MustGet("databaseConn").(pgx.DbConn)
 	insertQuery := `INSERT INTO kuser (FirstName, LastName, Phone, Addr)
 	VALUES ($1, $2, $3, $4)`
 	_, err = conn.Exec(
@@ -100,7 +101,7 @@ func CreateUser(c *gin.Context) {
 	)
 
 	if err != nil {
-		log.Println("CreateUser: ", insertQuery, "failed \n", err)
+		log.Println("CreateUser:", insertQuery, "failed \n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
@@ -110,14 +111,14 @@ func CreateUser(c *gin.Context) {
 
 func DeactivateUser(c *gin.Context) {
 	phone := c.Param("phone")
-	conn := c.MustGet("databaseConn").(*pgx.Conn)
+	conn := c.MustGet("databaseConn").(pgx.DbConn)
 	updateQuery := `UPDATE kuser
 	SET Active = False
 	WHERE Phone = $1`
 	_, err := conn.Exec(c.Request.Context(), updateQuery, phone)
 
 	if err != nil {
-		log.Println("DeactivateUser: ", updateQuery, "failed. \n", err)
+		log.Println("DeactivateUser:", updateQuery, "failed. \n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
