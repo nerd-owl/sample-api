@@ -3,6 +3,7 @@ package user
 import (
 	"example/web-service-gin/handler/pgx"
 	"example/web-service-gin/helper"
+	"fmt"
 
 	"log"
 	"net/http"
@@ -27,7 +28,8 @@ func GetUsers(c *gin.Context) {
 	selectQuery := "select * from kuser"
 	rows, err := conn.Query(c.Request.Context(), selectQuery)
 	if err != nil {
-		log.Println("GetUsers: Query failed for:", selectQuery, err)
+		message := fmt.Sprintf("GetUsers: %v failed \n", selectQuery)
+		log.Println(message, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
@@ -45,8 +47,7 @@ func GetUsers(c *gin.Context) {
 		)
 		if err != nil {
 			log.Println(
-				"GetUsers: row.Scan Failed for:",
-				selectQuery,
+				"GetUsers: rows.Scan Failed \n",
 				err,
 			)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
@@ -101,7 +102,13 @@ func CreateUser(c *gin.Context) {
 	)
 
 	if err != nil {
-		log.Println("CreateUser:", insertQuery, "failed \n", err)
+		message := fmt.Sprintf(
+			"CreateUser: %v failed with params %v \n",
+			insertQuery,
+			user,
+		)
+
+		log.Println(message, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
@@ -118,7 +125,13 @@ func DeactivateUser(c *gin.Context) {
 	_, err := conn.Exec(c.Request.Context(), updateQuery, phone)
 
 	if err != nil {
-		log.Println("DeactivateUser:", updateQuery, "failed. \n", err)
+		message := fmt.Sprintf(
+			"DeactivateUser: %v failed with params %v \n",
+			updateQuery,
+			phone,
+		)
+
+		log.Println(message, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}

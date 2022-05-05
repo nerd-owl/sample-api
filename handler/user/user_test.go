@@ -29,7 +29,7 @@ func createMockContext(
 }
 
 func MockJsonPost(c *gin.Context /* the test context */, content interface{}) {
-	c.Request.Method = "POST" // or PUT
+	c.Request.Method = "POST"
 	c.Request.Header.Set("Content-Type", "application/json")
 
 	jsonbytes, err := json.Marshal(content)
@@ -48,11 +48,10 @@ func TestDeactivateUser(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockConn := mocks.NewMockDbConn(mockCtrl)
+	w, c := createMockContext(mockConn)
 	mockConn.EXPECT().
 		Exec(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(nil, nil)
-
-	w, c := createMockContext(mockConn)
 	c.Params = []gin.Param{{Key: "phone", Value: "7408963464"}}
 
 	DeactivateUser(c)
@@ -196,6 +195,55 @@ func TestGetUsers(t *testing.T) {
 	GetUsers(c)
 
 	if w.Code != 200 {
+		b, _ := ioutil.ReadAll(w.Body)
+		t.Error(w.Code, string(b))
+	}
+}
+
+func TestGetUsersWithScanError(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockRows := mocks.NewMockRows(mockCtrl)
+	mockConn := mocks.NewMockDbConn(mockCtrl)
+	gomock.InOrder(
+		mockConn.EXPECT().
+			Query(gomock.Any(), gomock.Any()).
+			Return(mockRows, nil),
+		mockRows.EXPECT().Next().Return(true).Times(1),
+		mockRows.EXPECT().
+			Scan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(errors.New("Dummy Error")).
+			Times(1),
+	)
+
+	w, c := createMockContext(mockConn)
+
+	GetUsers(c)
+
+	if w.Code != 500 {
+		b, _ := ioutil.ReadAll(w.Body)
+		t.Error(w.Code, string(b))
+	}
+}
+
+func TestGetUsersWithQueryError(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockRows := mocks.NewMockRows(mockCtrl)
+	mockConn := mocks.NewMockDbConn(mockCtrl)
+	gomock.InOrder(
+		mockConn.EXPECT().
+			Query(gomock.Any(), gomock.Any()).
+			Return(mockRows, errors.New("Dummy Error")),
+	)
+
+	w, c := createMockContext(mockConn)
+
+	GetUsers(c)
+
+	if w.Code != 500 {
 		b, _ := ioutil.ReadAll(w.Body)
 		t.Error(w.Code, string(b))
 	}

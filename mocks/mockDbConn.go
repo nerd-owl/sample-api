@@ -10,7 +10,6 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	pgconn "github.com/jackc/pgconn"
 )
 
 // MockDbConn is a mock of DbConn interface.
@@ -37,14 +36,14 @@ func (m *MockDbConn) EXPECT() *MockDbConnMockRecorder {
 }
 
 // Exec mocks base method.
-func (m *MockDbConn) Exec(arg0 context.Context, arg1 string, arg2 ...interface{}) (pgconn.CommandTag, error) {
+func (m *MockDbConn) Exec(arg0 context.Context, arg1 string, arg2 ...interface{}) (interface{}, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Exec", varargs...)
-	ret0, _ := ret[0].(pgconn.CommandTag)
+	ret0, _ := ret[0].(interface{})
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
