@@ -1,67 +1,28 @@
 package user
 
 import (
+	db "example/web-service-gin/db/sqlc"
 	"example/web-service-gin/helper"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v4"
 )
 
-type User struct {
-	UserWithoutActivity
-	Active bool
-}
-
-type UserWithoutActivity struct {
-	Fname   string
-	Lname   string
-	Phone   string
-	Address string
-}
-
 func GetUsers(c *gin.Context) {
-	conn := c.MustGet("databaseConn").(*pgx.Conn)
-	selectQuery := "select * from kuser"
-	rows, err := conn.Query(c.Request.Context(), selectQuery)
+	db := c.MustGet("querier").(db.Querier)
+	users, err := db.ListUser(c.Request.Context())
 	if err != nil {
-		message := fmt.Sprintf("GetUsers: %v failed \n", selectQuery)
-		log.Println(message, err)
+		log.Println("db.ListUser failed with:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
-
-	var users []User
-
-	for rows.Next() {
-		var user User = User{}
-		err := rows.Scan(
-			&user.Fname,
-			&user.Lname,
-			&user.Phone,
-			&user.Address,
-			&user.Active,
-		)
-		if err != nil {
-			log.Println(
-				"GetUsers: row.Scan Failed for: ",
-				selectQuery,
-				err,
-			)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-			return
-		}
-
-		users = append(users, user)
-	}
-
 	c.JSON(http.StatusOK, gin.H{"data": users})
 }
 
 func CreateUser(c *gin.Context) {
-	var user UserWithoutActivity
+	var user db.CreateUserParams
 	err := c.BindJSON(&user)
 	if err != nil {
 		log.Println("CreateUser: BindJSON Failed \n", err)
@@ -69,7 +30,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	if !helper.CheckName(user.Fname) || !helper.CheckName(user.Lname) {
+	if !helper.CheckName(user.Firstname) || !helper.CheckName(user.Lastname) {
 		c.JSON(
 			http.StatusBadRequest,
 			gin.H{
@@ -89,22 +50,12 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	conn := c.MustGet("databaseConn").(*pgx.Conn)
-	insertQuery := `INSERT INTO kuser (FirstName, LastName, Phone, Addr)
-	VALUES ($1, $2, $3, $4)`
-	_, err = conn.Exec(
-		c.Request.Context(),
-		insertQuery,
-		user.Fname,
-		user.Lname,
-		user.Phone,
-		user.Address,
-	)
+	db := c.MustGet("querier").(db.Querier)
+	err = db.CreateUser(c.Request.Context(), user)
 
 	if err != nil {
 		message := fmt.Sprintf(
-			"CreateUser: %v failed with params %v \n",
-			insertQuery,
+			"db.CreateUser failed with params %v \n",
 			user,
 		)
 
@@ -118,16 +69,12 @@ func CreateUser(c *gin.Context) {
 
 func DeactivateUser(c *gin.Context) {
 	phone := c.Param("phone")
-	conn := c.MustGet("databaseConn").(*pgx.Conn)
-	updateQuery := `UPDATE kuser
-	SET Active = False
-	WHERE Phone = $1`
-	_, err := conn.Exec(c.Request.Context(), updateQuery, phone)
+	db := c.MustGet("querier").(db.Querier)
+	err := db.DeactivateUser(c.Request.Context(), phone)
 
 	if err != nil {
 		message := fmt.Sprintf(
-			"DeactivateUser: %v failed with params %v \n",
-			updateQuery,
+			"db.DeactivateUser failed with params %v \n",
 			phone,
 		)
 
