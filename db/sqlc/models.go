@@ -4,14 +4,12 @@
 
 package db
 
-import (
-	"database/sql"
-)
+import ()
 
 type Kuser struct {
-	Firstname string         `json:"firstname"`
-	Lastname  string         `json:"lastname"`
-	Phone     string         `json:"phone"`
-	Addr      sql.NullString `json:"addr"`
-	Active    sql.NullBool   `json:"active"`
+	Firstname string `json:"firstname"`
+	Lastname  string `json:"lastname"`
+	Phone     string `json:"phone"`
+	Addr      string `json:"addr"`
+	Active    bool   `json:"active"`
 }

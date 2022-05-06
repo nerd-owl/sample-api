@@ -1,52 +1,44 @@
 package main
 
 import (
-	"context"
-	"fmt"
+	"database/sql"
 	"log"
-	"os"
 
+	db "example/web-service-gin/db/sqlc"
 	"example/web-service-gin/handler/user"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v4"
-	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
-func attachPgConn(conn *pgx.Conn) gin.HandlerFunc {
+func attachPgConn(querier db.Querier) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Set("databaseConn", conn)
+		c.Set("querier", querier)
 		c.Next()
 	}
 }
 
+const (
+	dbDriver = "postgres"
+	dbSource = "postgres://postgres:mysecretpassword@localhost:5432/postgres?sslmode=disable"
+)
+
 func main() {
 
-	err := godotenv.Load("./configs/.env")
+	conn, err := sql.Open(dbDriver, dbSource)
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatal("cannot connect to db:", err)
 	}
+
+	defer conn.Close()
+
+	querier := db.New(conn)
 
 	router := gin.Default()
-	// url := "postgres://postgres:mysecretpassword@localhost:5432/postgres"
-	url := fmt.Sprintf(
-		"postgres://%v:%v@%v:%v/%v",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_NAME"),
-	)
-	conn, err := pgx.Connect(context.Background(), url)
-	if err != nil {
-		log.Fatal("Unable to connect to database \n", err)
-	}
-	defer conn.Close(context.Background())
-
-	router.Use(attachPgConn(conn))
+	router.Use(attachPgConn(querier))
 
 	router.GET("/users", user.GetUsers)
 	router.POST("/users", user.CreateUser)
 	router.PUT("/deactivate/:phone", user.DeactivateUser)
-	router.Run(fmt.Sprintf("localhost:%v", os.Getenv("HTTP_PORT")))
+	router.Run("localhost:4030")
 }

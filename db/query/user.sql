@@ -9,3 +9,6 @@ VALUES ($1, $2, $3, $4);
 UPDATE kuser
 SET Active = False
 WHERE Phone = $1;
+
+-- name: DeleteUser :exec
+delete from kuser where phone = '7408963464';

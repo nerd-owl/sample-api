@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createUser = `-- name: CreateUser :exec
@@ -16,10 +15,10 @@ VALUES ($1, $2, $3, $4)
 `
 
 type CreateUserParams struct {
-	Firstname string         `json:"firstname"`
-	Lastname  string         `json:"lastname"`
-	Phone     string         `json:"phone"`
-	Addr      sql.NullString `json:"addr"`
+	Firstname string `json:"firstname"`
+	Lastname  string `json:"lastname"`
+	Phone     string `json:"phone"`
+	Addr      string `json:"addr"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
@@ -40,6 +39,15 @@ WHERE Phone = $1
 
 func (q *Queries) DeactivateUser(ctx context.Context, phone string) error {
 	_, err := q.db.ExecContext(ctx, deactivateUser, phone)
+	return err
+}
+
+const deleteUser = `-- name: DeleteUser :exec
+delete from kuser where phone = '7408963464'
+`
+
+func (q *Queries) DeleteUser(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteUser)
 	return err
 }
 

@@ -11,6 +11,7 @@ import (
 type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) error
 	DeactivateUser(ctx context.Context, phone string) error
+	DeleteUser(ctx context.Context) error
 	ListUser(ctx context.Context) ([]Kuser, error)
 }
 
