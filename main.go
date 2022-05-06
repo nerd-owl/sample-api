@@ -11,9 +11,9 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func attachPgConn(querier db.Querier) gin.HandlerFunc {
+func AttachDbStore(store db.Querier) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Set("querier", querier)
+		c.Set("store", store)
 		c.Next()
 	}
 }
@@ -32,10 +32,10 @@ func main() {
 
 	defer conn.Close()
 
-	querier := db.New(conn)
+	store := db.New(conn)
 
 	router := gin.Default()
-	router.Use(attachPgConn(querier))
+	router.Use(AttachDbStore(store))
 
 	router.GET("/users", user.GetUsers)
 	router.POST("/users", user.CreateUser)

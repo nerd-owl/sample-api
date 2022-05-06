@@ -16,7 +16,7 @@ import (
 )
 
 func createMockContext(
-	querier db.Querier,
+	store db.Querier,
 ) (*httptest.ResponseRecorder, *gin.Context) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -25,7 +25,7 @@ func createMockContext(
 		Header: make(http.Header),
 	}
 
-	c.Set("querier", querier)
+	c.Set("store", store)
 	return w, c
 }
 

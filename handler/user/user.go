@@ -2,7 +2,6 @@ package user
 
 import (
 	db "example/web-service-gin/db/sqlc"
-	"example/web-service-gin/helper"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,52 +10,46 @@ import (
 )
 
 func GetUsers(c *gin.Context) {
-	db := c.MustGet("querier").(db.Querier)
-	users, err := db.ListUser(c.Request.Context())
+	store := c.MustGet("store").(db.Querier)
+	users, err := store.ListUser(c.Request.Context())
 	if err != nil {
-		log.Println("db.ListUser failed with:", err)
+		log.Println("store.ListUser failed with:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": users})
 }
 
+type CreateUserRequest struct {
+	Firstname string `json:"firstname" binding:"required,alpha"`
+	Lastname  string `json:"lastname" binding:"required,alpha"`
+	Phone     string `json:"phone" binding:"required,number,len=10"`
+	Addr      string `json:"addr" binding:"required"`
+}
+
 func CreateUser(c *gin.Context) {
-	var user db.CreateUserParams
-	err := c.BindJSON(&user)
+	var user CreateUserRequest
+	err := c.ShouldBindJSON(&user)
 	if err != nil {
 		log.Println("CreateUser: BindJSON Failed \n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
 	}
 
-	if !helper.CheckName(user.Firstname) || !helper.CheckName(user.Lastname) {
-		c.JSON(
-			http.StatusBadRequest,
-			gin.H{
-				"error": "FirstName and LastName should not have spaces and must only contain letters",
-			},
-		)
-		return
+	newUser := db.CreateUserParams{
+		Firstname: user.Firstname,
+		Lastname:  user.Lastname,
+		Phone:     user.Phone,
+		Addr:      user.Addr,
 	}
 
-	if !helper.CheckPhone(user.Phone) {
-		c.JSON(
-			http.StatusBadRequest,
-			gin.H{
-				"error": "Phone must be exactly 10 digits and only numbers",
-			},
-		)
-		return
-	}
-
-	db := c.MustGet("querier").(db.Querier)
-	err = db.CreateUser(c.Request.Context(), user)
+	store := c.MustGet("store").(db.Querier)
+	err = store.CreateUser(c.Request.Context(), newUser)
 
 	if err != nil {
 		message := fmt.Sprintf(
-			"db.CreateUser failed with params %v \n",
-			user,
+			"store.CreateUser failed with params %v \n",
+			newUser,
 		)
 
 		log.Println(message, err)
@@ -69,12 +62,12 @@ func CreateUser(c *gin.Context) {
 
 func DeactivateUser(c *gin.Context) {
 	phone := c.Param("phone")
-	db := c.MustGet("querier").(db.Querier)
-	err := db.DeactivateUser(c.Request.Context(), phone)
+	store := c.MustGet("store").(db.Querier)
+	err := store.DeactivateUser(c.Request.Context(), phone)
 
 	if err != nil {
 		message := fmt.Sprintf(
-			"db.DeactivateUser failed with params %v \n",
+			"store.DeactivateUser failed with params %v \n",
 			phone,
 		)
 

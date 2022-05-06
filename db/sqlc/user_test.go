@@ -7,7 +7,7 @@ import (
 
 // These tests require you to be connected to the database
 // It is to check if our sqlc methods work
-// which are otherwize difficult to mock
+// which are otherwise difficult to mock
 
 func TestCreateUser(t *testing.T) {
 	user := CreateUserParams{
